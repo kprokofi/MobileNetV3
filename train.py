@@ -47,11 +47,11 @@ def train(args, model, dataloader, loader_len, criterion, optimizer, scheduler, 
         loader_len,
         [batch_time, data_time, losses, top1, top5],
         prefix="Epoch: [{}]".format(epoch))
-    
+
     # update lr here if using stepLR
     if args.lr_decay == 'step':
         scheduler.step(epoch)
-    
+
     # Set model to training mode
     model.train()
 
@@ -81,14 +81,14 @@ def train(args, model, dataloader, loader_len, criterion, optimizer, scheduler, 
             loss = criterion(outputs, labels)
             # measure accuracy and record loss
             acc1, acc5 = accuracy(outputs, labels, topk=(1, 5))
-        
+
         # zero the parameter gradients
         optimizer.zero_grad()
 
         losses.update(loss.item(), inputs.size(0))
         top1.update(acc1[0], inputs.size(0))
         top5.update(acc5[0], inputs.size(0))
-            
+
         # backward + optimize
         loss.backward()
         if args.lr_decay == 'cos':
@@ -101,16 +101,16 @@ def train(args, model, dataloader, loader_len, criterion, optimizer, scheduler, 
         if args.ema_decay > 0:
             # EMA update after training(every iteration)
             ema.update()
-                
+
         batch_time.update(time.time() - end)
         end = time.time()
 
         if i % args.print_freq == 0:
             progress.display(i)
-            
+
     # write training result to file
     resultWriter.write_csv([epoch, losses.avg, top1.avg.item(), top5.avg.item(), scheduler.optimizer.param_groups[0]['lr']])
-    
+
     print()
     # there is a bug in get_lr() if using pytorch 1.1.0, see https://github.com/pytorch/pytorch/issues/22107
     # so here we don't use get_lr()
@@ -156,15 +156,15 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
     for i, (inputs, labels) in enumerate(dataloader):
         # measure data loading time
         data_time.update(time.time() - end)
-        
+
         inputs = inputs.to(device)
         labels = labels.to(device)
 
         with torch.set_grad_enabled(False):
-            
+
             outputs = model(inputs)
             loss = criterion(outputs, labels)
-            
+
             # measure accuracy and record loss
             acc1, acc5 = accuracy(outputs, labels, topk=(1, 5))
             losses.update(loss.item(), inputs.size(0))
@@ -172,7 +172,7 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
             top5.update(acc5[0], inputs.size(0))
             batch_time.update(time.time() - end)
             end = time.time()
-            
+
 
     if args.ema_decay > 0:
         # restore the origin parameters after val
@@ -189,7 +189,7 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
 
     top1_acc = top1.avg.item()
     top5_acc = top5.avg.item()
-    
+
     return top1_acc, top5_acc
 
 def train_model(args, model, dataloader, loaders_len, criterion, optimizer, scheduler, use_gpu):
@@ -229,7 +229,7 @@ def train_model(args, model, dataloader, loaders_len, criterion, optimizer, sche
     print(os.path.split(args.save_path)[-1])
     print('Best val top-1 Accuracy: {:4f}'.format(best_acc))
     print('Corresponding top-5 Accuracy: {:4f}'.format(correspond_top5))
-    
+
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(time_elapsed // 3600, (time_elapsed % 3600) // 60, time_elapsed % 60))
 
@@ -247,15 +247,16 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='PyTorch implementation of MobileNetV3')
     # Root catalog of images
-    parser.add_argument('--data-dir', type=str, default='/media/data2/chenjiarong/ImageData')
+    parser.add_argument('--data-dir', type=str, default='/mnt/pai_share/datasets/classification/SVHN')
     parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--num-epochs', type=int, default=150)
+    parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--num-workers', type=int, default=4)
     #parser.add_argument('--gpus', type=str, default='0')
     parser.add_argument('--print-freq', type=int, default=1000)
     parser.add_argument('--save-epoch-freq', type=int, default=1)
-    parser.add_argument('--save-path', type=str, default='/media/data2/chenjiarong/saved-model/MobileNetV3')
+    parser.add_argument('--save-path', type=str, default='./output')
     parser.add_argument('-save', default=False, action='store_true', help='save model or not')
     parser.add_argument('--resume', type=str, default='', help='For training from one checkpoint')
     parser.add_argument('--start-epoch', type=int, default=0, help='Corresponding to the epoch of resume')
@@ -365,10 +366,16 @@ if __name__ == '__main__':
     elif args.dataset == 'cifar10' or args.dataset == 'svhn':
         input_size = 32
         num_class = 10
-    
+    if args.dataset == 'custom_folder':
+        input_size = 224
+        num_class = args.num_classes
+    elif args.dataset == 'custom_txt':
+        input_size = 224
+        num_class = args.num_classes
+
     # get model
-    model = MobileNetV3(mode=args.mode, classes_num=num_class, input_size=input_size, 
-                    width_multiplier=args.width_multiplier, dropout=args.dropout, 
+    model = MobileNetV3(mode=args.mode, classes_num=num_class, input_size=input_size,
+                    width_multiplier=args.width_multiplier, dropout=args.dropout,
                     BN_momentum=args.bn_momentum, zero_gamma=args.zero_gamma)
 
     if use_gpu:
@@ -391,13 +398,13 @@ if __name__ == '__main__':
         criterion = LabelSmoothingLoss(num_class, label_smoothing=args.label_smoothing)
     else:
         criterion = nn.CrossEntropyLoss()
-    
+
     if args.optimizer == 'sgd':
         if args.nbd:
             from NoBiasDecay import noBiasDecay
             optimizer_ft = optim.SGD(
                 # no bias decay
-                noBiasDecay(model, args.lr, args.weight_decay), 
+                noBiasDecay(model, args.lr, args.weight_decay),
                 momentum=0.9)
         else:
             optimizer_ft = optim.SGD(model.parameters(), lr=args.lr, momentum=0.9, weight_decay=args.weight_decay)
