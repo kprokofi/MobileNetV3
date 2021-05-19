@@ -278,7 +278,6 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
 
         inputs = inputs.to(device)
         labels = labels.to(device)
-        print(inputs.shape, labels.shape, type(labels))
 
         with torch.set_grad_enabled(False):
 
