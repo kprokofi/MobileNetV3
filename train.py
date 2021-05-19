@@ -512,7 +512,6 @@ if __name__ == '__main__':
             load_pretrained_weights(model, args.resume)
         else:
             print(("=> no checkpoint found at '{}'".format(args.resume)))
-            exit()
 
     if args.label_smoothing > 0:
         # using Label Smoothing
