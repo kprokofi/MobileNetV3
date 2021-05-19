@@ -159,6 +159,7 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
 
         inputs = inputs.to(device)
         labels = labels.to(device)
+        print(inputs.shape, labels.shape, type(labels))
 
         with torch.set_grad_enabled(False):
 
@@ -258,7 +259,7 @@ if __name__ == '__main__':
     parser.add_argument('--save-epoch-freq', type=int, default=1)
     parser.add_argument('--save-path', type=str, default='./output')
     parser.add_argument('-save', default=False, action='store_true', help='save model or not')
-    parser.add_argument('--resume', type=str, default='', help='For training from one checkpoint')
+    parser.add_argument('--resume', type=str, default='pretrained/best_model_wts-67.52.pth', help='For training from one checkpoint')
     parser.add_argument('--start-epoch', type=int, default=0, help='Corresponding to the epoch of resume')
     parser.add_argument('--ema-decay', type=float, default=0.9999, help='The decay of exponential moving average ')
     parser.add_argument('--dataset', type=str, default='ImageNet', help='The dataset to be trained')
@@ -328,6 +329,29 @@ if __name__ == '__main__':
             torch.backends.cudnn.benchmark = True
         print('torch.backends.cudnn.deterministic:' + str(args.deterministic))
 
+    # different input size and number of classes for different datasets
+    assert args.dataset in {'imagenet', 'tinyimagenet',
+                                'cifar100', 'cifar10', 'svhn',
+                                'custom_folder', 'custom_txt'}
+    if args.dataset == 'imagenet':
+        input_size = 224
+        num_class = 1000
+    elif args.dataset == 'tinyimagenet':
+        input_size = 56
+        num_class = 200
+    if args.dataset == 'cifar100':
+        input_size = 32
+        num_class = 100
+    elif args.dataset == 'cifar10' or args.dataset == 'svhn':
+        input_size = 32
+        num_class = 10
+    if args.dataset == 'custom_folder':
+        input_size = 224
+        num_class = args.num_classes
+    elif args.dataset == 'custom_txt':
+        input_size = 224
+        num_class = args.num_classes
+
     # read data
     # dataloaders = dataloaders(args)
     if args.dali and (args.dataset == 'tinyimagenet' or args.dataset == 'imagenet'):
@@ -353,26 +377,6 @@ if __name__ == '__main__':
         dataloaders = {'train' : train_loader, 'val' : val_loader}
         loaders_len = {'train': train_loader_len, 'val' : val_loader_len}
 
-    # different input size and number of classes for different datasets
-    if args.dataset == 'imagenet':
-        input_size = 224
-        num_class = 1000
-    elif args.dataset == 'tinyimagenet':
-        input_size = 56
-        num_class = 200
-    if args.dataset == 'cifar100':
-        input_size = 32
-        num_class = 100
-    elif args.dataset == 'cifar10' or args.dataset == 'svhn':
-        input_size = 32
-        num_class = 10
-    if args.dataset == 'custom_folder':
-        input_size = 224
-        num_class = args.num_classes
-    elif args.dataset == 'custom_txt':
-        input_size = 224
-        num_class = args.num_classes
-
     # get model
     model = MobileNetV3(mode=args.mode, classes_num=num_class, input_size=input_size,
                     width_multiplier=args.width_multiplier, dropout=args.dropout,
@@ -388,7 +392,7 @@ if __name__ == '__main__':
     if args.resume:
         if os.path.isfile(args.resume):
             print(("=> loading checkpoint '{}'".format(args.resume)))
-            model.load_state_dict(torch.load(args.resume))
+            model.load_state_dict(torch.load(args.resume), strict=False)
         else:
             print(("=> no checkpoint found at '{}'".format(args.resume)))
             exit()

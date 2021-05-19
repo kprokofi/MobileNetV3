@@ -207,15 +207,17 @@ def CustomDatasetFolder(args):
 def CustomDatasetTxt(args):
     data_transforms = {
         'train': transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((224,224)),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize((0.4309, 0.4302, 0.4463), (0.1965, 0.1983, 0.1994))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
+            transforms.ToPILImage(),
             transforms.Resize((224,224)),
             transforms.ToTensor(),
-            transforms.Normalize((0.4524, 0.4525, 0.4690), (0.2194, 0.2266, 0.2285))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
 
