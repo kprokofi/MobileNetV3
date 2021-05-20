@@ -182,15 +182,16 @@ def SVHNDataLoader(args):
 def CustomDatasetFolder(args):
     data_transforms = {
         'train': transforms.Compose([
-            transforms.Resize((224,224)),
+            transforms.Resize((args.resolution,args.resolution)),
+            transforms.RandomCrop(args.resolution, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
         ]),
         'val': transforms.Compose([
-            transforms.Resize((224,224)),
+            transforms.Resize((args.resolution,args.resolution)),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
         ])
     }
 
@@ -209,15 +210,16 @@ def CustomDatasetTxt(args):
         'train': transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((args.resolution,args.resolution)),
+            transforms.RandomCrop(args.resolution, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
         ]),
         'val': transforms.Compose([
             transforms.ToPILImage(),
             transforms.Resize((args.resolution,args.resolution)),
             transforms.ToTensor(),
-            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
         ])
     }
 
