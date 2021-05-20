@@ -369,6 +369,7 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', type=str, default='/mnt/pai_share/datasets/classification/SVHN')
     parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--num-epochs', type=int, default=150)
+    parser.add_argument('--resolution', type=int, default=240)
     parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--num-workers', type=int, default=4)
@@ -464,10 +465,10 @@ if __name__ == '__main__':
         input_size = 32
         num_class = 10
     if args.dataset == 'custom_folder':
-        input_size = 224
+        input_size = args.resolution
         num_class = args.num_classes
     elif args.dataset == 'custom_txt':
-        input_size = 224
+        input_size = args.resolution
         num_class = args.num_classes
 
     # read data
