@@ -25,6 +25,7 @@ from pprint import pformat
 
 from statistics import *
 from EMA import EMA
+from metrics import evaluate_classification
 from LabelSmoothing import LabelSmoothingLoss
 # from DataLoader import dataloaders
 from ResultWriter import ResultWriter
@@ -406,6 +407,7 @@ if __name__ == '__main__':
     parser.add_argument('-zero-gamma', default=False, action='store_true', help='zero gamma in BatchNorm2d when init')
     parser.add_argument('-mixup', default=False, action='store_true', help='mixup or not')
     parser.add_argument('--mixup-alpha', type=float, default=0.2, help='alpha used in mixup')
+    parser.add_argument('--eval', type=bool, default=False)
     args = parser.parse_args()
 
     args.lr_decay = args.lr_decay.lower()
@@ -542,6 +544,10 @@ if __name__ == '__main__':
     elif args.lr_decay == 'sgdr':
         lr_scheduler = CosineAnnealingWarmRestarts(optimizer=optimizer_ft, T_0=args.T_0, T_mult=args.T_mult, warmup_epochs=args.warmup_epochs, decay_rate=args.decay_rate)
 
+    if args.eval:
+        cmc, m_ap = evaluate_classification(dataloaders['val'], model, use_gpu)
+        print(f'evaluated model: {cmc}, mAP: {m_ap}')
+        exit()
     model = train_model(args=args,
                         model=model,
                         dataloader=dataloaders,
