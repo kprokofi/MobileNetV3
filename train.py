@@ -119,7 +119,7 @@ def load_pretrained_weights(model, file_path='', pretrained_dict=None, extra_pre
 
     for k, v in state_dict.items():
         k = extra_prefix + _remove_prefix(k, 'module')
-
+        # print(model_dict[k].size(), v.size())
         if k in model_dict and model_dict[k].size() == v.size():
             new_state_dict[k] = v
             matched_layers.append(k)
@@ -504,8 +504,8 @@ if __name__ == '__main__':
                     BN_momentum=args.bn_momentum, zero_gamma=args.zero_gamma)
 
     if use_gpu:
-        if torch.cuda.device_count() > 1:
-            model = torch.nn.DataParallel(model)
+        # if torch.cuda.device_count() > 1:
+        #     model = torch.nn.DataParallel(model)
         model.to(torch.device('cuda'))
     else:
         model.to(torch.device('cpu'))

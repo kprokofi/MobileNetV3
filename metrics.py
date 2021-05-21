@@ -2,10 +2,10 @@ import numpy as np
 import torch
 
 
-def score_extraction(data_loader, model, use_gpu, labelmap=[], head_id=0):
+def score_extraction(data_loader, model, use_gpu, labelmap=[]):
     with torch.no_grad():
         out_scores, gt_labels = [], []
-        for batch_idx, data in enumerate(data_loader):
+        for _, data in enumerate(data_loader):
             batch_images, batch_labels = data[0], data[1]
             if use_gpu:
                 batch_images = batch_images.cuda()
@@ -14,7 +14,7 @@ def score_extraction(data_loader, model, use_gpu, labelmap=[], head_id=0):
                 for i, label in enumerate(labelmap):
                     batch_labels[torch.where(batch_labels==i)] = label
 
-            out_scores.append(model(batch_images)[head_id])
+            out_scores.append(model(batch_images))
             gt_labels.extend(batch_labels)
 
         out_scores = torch.cat(out_scores, 0).data.cpu().numpy()
