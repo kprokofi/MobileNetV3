@@ -265,7 +265,7 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
     # write val result to file
     resultWriter.write_csv([epoch, m_ap, top1, top5])
 
-    print(' Val  ***    mAP:{mAP:.2f}    Acc@1:{top1:.2f}    Acc@5:{top5:.2f}'.format(mAP=m_ap*100, top1=top1*100, top5=top5*100))
+    print(' Val  ***    mAP:{mAP:.2%}    Acc@1:{top1:.2%}    Acc@5:{top5:.2%}'.format(mAP=m_ap, top1=top1, top5=top5))
 
     if epoch % args.save_epoch_freq == 0 and epoch != 0:
         if not os.path.exists(args.save_path):
