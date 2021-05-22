@@ -273,9 +273,9 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
         torch.save(model.state_dict(), os.path.join(args.save_path, "epoch_" + str(epoch) + ".pth"))
 
     top1_acc = top1
-    top5_acc = top5
+    mAP_acc = m_ap
 
-    return top1_acc, top5_acc
+    return top1_acc, mAP_acc
 
 def train_model(args, model, dataloader, loaders_len, criterion, optimizer, scheduler, use_gpu):
     '''
@@ -297,14 +297,14 @@ def train_model(args, model, dataloader, loaders_len, criterion, optimizer, sche
 
         epoch_time = time.time()
         train(args, model, dataloader['train'], loaders_len['train'], criterion, optimizer, scheduler, use_gpu, epoch, ema)
-        top1_acc, top5_acc = validate(args, model, dataloader['val'], loaders_len['val'], criterion, use_gpu, epoch, ema)
+        top1_acc, mAP_acc = validate(args, model, dataloader['val'], loaders_len['val'], criterion, use_gpu, epoch, ema)
         epoch_time = time.time() - epoch_time
         print('Time of epoch-[{:d}/{:d}] : {:.0f}h {:.0f}m {:.0f}s\n'.format(epoch, args.num_epochs, epoch_time // 3600, (epoch_time % 3600) // 60, epoch_time % 60))
 
         # deep copy the model if it has higher top-1 accuracy
         if top1_acc > best_acc:
             best_acc = top1_acc
-            correspond_top5 = top5_acc
+            correspond_mAP = mAP_acc
             if args.ema_decay > 0:
                 ema.apply_shadow()
             best_model_wts = copy.deepcopy(model.state_dict())
@@ -313,7 +313,7 @@ def train_model(args, model, dataloader, loaders_len, criterion, optimizer, sche
 
     print(os.path.split(args.save_path)[-1])
     print('Best val top-1 Accuracy: {:4f}'.format(best_acc))
-    print('Corresponding top-5 Accuracy: {:4f}'.format(correspond_top5))
+    print('Corresponding mAP : {:4f}'.format(correspond_mAP))
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}h {:.0f}m {:.0f}s'.format(time_elapsed // 3600, (time_elapsed % 3600) // 60, time_elapsed % 60))
