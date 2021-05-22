@@ -38,9 +38,8 @@ class ImageTxt(Dataset):
 
     def __getitem__(self, indx):
         image, label = self.data[indx]
-        image = cv.imread(image)
+        image = Image.open(image).convert('RGB')
         assert image is not None
-        image = cv.cvtColor(image, cv.COLOR_BGR2RGB)
         if self.transform:
             image = self.transform(image)
         return image, int(label)
@@ -186,12 +185,12 @@ def CustomDatasetFolder(args):
             transforms.RandomCrop(args.resolution, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
             transforms.Resize((args.resolution,args.resolution)),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
 
@@ -208,18 +207,16 @@ def CustomDatasetFolder(args):
 def CustomDatasetTxt(args):
     data_transforms = {
         'train': transforms.Compose([
-            transforms.ToPILImage(),
             transforms.Resize((args.resolution,args.resolution)),
             transforms.RandomCrop(args.resolution, padding=4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ]),
         'val': transforms.Compose([
-            transforms.ToPILImage(),
             transforms.Resize((args.resolution,args.resolution)),
             transforms.ToTensor(),
-            transforms.Normalize((0.5071, 0.4865, 0.4409), (0.2673, 0.2564, 0.2762))
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
         ])
     }
 

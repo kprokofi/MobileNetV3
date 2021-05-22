@@ -83,7 +83,6 @@ def mean_average_precision(scores, labels):
     ap = _ap(recall, precision)
     valid_ap = ap[valid_mask]
     mean_ap = np.mean(ap) if len(valid_ap) > 0 else 1.0
-
     return mean_ap
 
 def evaluate_classification(dataloader, model, use_gpu, topk=(1,), labelmap=[]):

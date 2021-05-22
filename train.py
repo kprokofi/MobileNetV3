@@ -230,8 +230,6 @@ def train(args, model, dataloader, loader_len, criterion, optimizer, scheduler, 
 
     # write training result to file
     resultWriter.write_csv([epoch, losses.avg, top1.avg.item(), top5.avg.item(), scheduler.optimizer.param_groups[0]['lr']])
-
-    print()
     # there is a bug in get_lr() if using pytorch 1.1.0, see https://github.com/pytorch/pytorch/issues/22107
     # so here we don't use get_lr()
     # print('lr:%.6f' % scheduler.get_lr()[0])
@@ -251,64 +249,31 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
     # save result every epoch
     resultWriter = ResultWriter(args.save_path, save_file_name)
     if epoch == 0:
-        resultWriter.create_csv(['epoch', 'loss', 'top-1', 'top-5'])
+        resultWriter.create_csv(['epoch', 'mAP', 'top-1', 'top-5'])
 
-    device = torch.device('cuda' if use_gpu else 'cpu')
-
-    batch_time = AverageMeter('Time', ':6.3f')
-    data_time = AverageMeter('Data', ':6.3f')
-    losses = AverageMeter('Loss', ':.4e')
-    top1 = AverageMeter('Acc@1', ':6.2f')
-    top5 = AverageMeter('Acc@5', ':6.2f')
-    progress = ProgressMeter(
-        loader_len,
-        [batch_time, data_time, losses, top1, top5],
-        prefix="Epoch: [{}]".format(epoch))
     if args.ema_decay > 0:
         # apply EMA at validation stage
         ema.apply_shadow()
     # Set model to evaluate mode
     model.eval()
-
-    end = time.time()
-
-    # Iterate over data
-    for i, (inputs, labels) in enumerate(dataloader):
-        # measure data loading time
-        data_time.update(time.time() - end)
-
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-
-        with torch.set_grad_enabled(False):
-
-            outputs = model(inputs)
-            loss = criterion(outputs, labels)
-
-            # measure accuracy and record loss
-            acc1, acc5 = accuracy(outputs, labels, topk=(1, 5))
-            losses.update(loss.item(), inputs.size(0))
-            top1.update(acc1[0], inputs.size(0))
-            top5.update(acc5[0], inputs.size(0))
-            batch_time.update(time.time() - end)
-            end = time.time()
-
+    top_k, m_ap = evaluate_classification(dataloader, model, use_gpu, topk=(1,5))
+    top1,top5 = top_k
 
     if args.ema_decay > 0:
         # restore the origin parameters after val
         ema.restore()
     # write val result to file
-    resultWriter.write_csv([epoch, losses.avg, top1.avg.item(), top5.avg.item()])
+    resultWriter.write_csv([epoch, m_ap, top1, top5])
 
-    print(' Val  ***    Loss:{losses.avg:.2e}    Acc@1:{top1.avg:.2f}    Acc@5:{top5.avg:.2f}'.format(losses=losses, top1=top1, top5=top5))
+    print(' Val  ***    mAP:{mAP:.2f}    Acc@1:{top1:.2f}    Acc@5:{top5:.2f}'.format(mAP=m_ap*100, top1=top1*100, top5=top5*100))
 
     if epoch % args.save_epoch_freq == 0 and epoch != 0:
         if not os.path.exists(args.save_path):
             os.makedirs(args.save_path)
         torch.save(model.state_dict(), os.path.join(args.save_path, "epoch_" + str(epoch) + ".pth"))
 
-    top1_acc = top1.avg.item()
-    top5_acc = top5.avg.item()
+    top1_acc = top1
+    top5_acc = top5
 
     return top1_acc, top5_acc
 
@@ -401,7 +366,7 @@ if __name__ == '__main__':
     parser.add_argument('--weight-decay', type=float, default=1e-5, help='weight decay')
     parser.add_argument('--bn-momentum', type=float, default=0.1, help='momentum in BatchNorm2d')
     parser.add_argument('-use-seed', default=False, action='store_true', help='using fixed random seed or not')
-    parser.add_argument('--seed', type=int, default=1, help='random seed')
+    parser.add_argument('--seed', type=int, default=5, help='random seed')
     parser.add_argument('-deterministic', default=False, action='store_true', help='torch.backends.cudnn.deterministic')
     parser.add_argument('-nbd', default=False, action='store_true', help='no bias decay')
     parser.add_argument('-zero-gamma', default=False, action='store_true', help='zero gamma in BatchNorm2d when init')
@@ -415,7 +380,7 @@ if __name__ == '__main__':
     args.optimizer = args.optimizer.lower()
 
     # folder to save what we need in this type: MobileNetV3-mode-dataset-width_multiplier-dropout-lr-batch_size-ema_decay-label_smoothing
-    folder_name = ['MobileNetV3', args.mode, args.dataset, 'wm'+str(args.width_multiplier), 'dp'+str(args.dropout), 'lr'+str(args.lr), 'bs'+str(args.batch_size), 'ed'+str(args.ema_decay), 'ls'+str(args.label_smoothing), args.optimizer+str(args.weight_decay), 'bn'+str(args.bn_momentum), 'epochs'+str(args.num_epochs), 'seed'+(str(args.seed) if args.use_seed else 'None'), 'determin'+str(args.deterministic), 'NoBiasDecay'+str(args.nbd), 'zeroGamma'+str(args.zero_gamma), 'mixup'+(str(args.mixup_alpha) if args.mixup else 'False')]
+    folder_name = ['MobileNetV3', args.mode, args.dataset]
     if args.lr_decay == 'step':
         folder_name.append(args.lr_decay+str(args.step_size)+'&'+str(args.gamma))
     elif args.lr_decay == 'cos':
@@ -503,18 +468,19 @@ if __name__ == '__main__':
                     width_multiplier=args.width_multiplier, dropout=args.dropout,
                     BN_momentum=args.bn_momentum, zero_gamma=args.zero_gamma)
 
-    if use_gpu:
-        # if torch.cuda.device_count() > 1:
-        #     model = torch.nn.DataParallel(model)
-        model.to(torch.device('cuda'))
-    else:
-        model.to(torch.device('cpu'))
-
     if args.resume:
         if os.path.isfile(args.resume):
             load_pretrained_weights(model, args.resume)
         else:
             print(("=> no checkpoint found at '{}'".format(args.resume)))
+
+    if use_gpu:
+        if torch.cuda.device_count() > 1:
+            print("cuda devices: ", torch.cuda.device_count())
+            model = torch.nn.DataParallel(model)
+        model.to(torch.device('cuda'))
+    else:
+        model.to(torch.device('cpu'))
 
     if args.label_smoothing > 0:
         # using Label Smoothing
