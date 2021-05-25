@@ -245,7 +245,6 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
     '''
     validate the model
     '''
-
     # save result every epoch
     resultWriter = ResultWriter(args.save_path, save_file_name)
     if epoch == 0:
@@ -258,7 +257,6 @@ def validate(args, model, dataloader, loader_len, criterion, use_gpu, epoch, ema
     model.eval()
     top_k, m_ap = evaluate_classification(dataloader, model, use_gpu, topk=(1,5))
     top1,top5 = top_k
-
     if args.ema_decay > 0:
         # restore the origin parameters after val
         ema.restore()
