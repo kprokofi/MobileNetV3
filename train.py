@@ -333,7 +333,7 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', type=str, default='/mnt/pai_share/datasets/classification/SVHN')
     parser.add_argument('--batch-size', type=int, default=256)
     parser.add_argument('--num-epochs', type=int, default=150)
-    parser.add_argument('--resolution', type=int, default=240)
+    parser.add_argument('--resolution', type=int, default=224)
     parser.add_argument('--num-classes', type=int, default=100)
     parser.add_argument('--lr', type=float, default=0.1)
     parser.add_argument('--num-workers', type=int, default=4)
